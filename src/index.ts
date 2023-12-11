@@ -1,29 +1,23 @@
 //try to use less AI, document more, and use typescript
 
-//used in stage resizing
-enum DisplayType {
-    wideScreen,
-    fill
-}
+class Instance {
+    name: string;
+    id: number;
 
-//used for position and size
-class Vector2 {
-    x: number
-    y: number
-
-    constructor(x?: number, y?: number) {
-        this.x = x || 0
-        this.y = y || 0
+    constructor(name: string = "Instance", id: number = Math.floor(Math.random() * 1000)) {
+        this.name = name;
+        this.id = id;
     }
 
 }
 
 //tiles, actors, etc...
-class WorldObject {
+class WorldObject extends Instance {
     position: Vector2
     imgSrc: HTMLImageElement
 
     constructor(position: Vector2, imgSrc: HTMLImageElement) {
+        super()
         this.position = position;
         this.imgSrc = imgSrc
     }
@@ -90,6 +84,51 @@ class Stage {
     }
 }
 
+//data types
+class Vector2 {
+    //used for positioning and sizing
+    x: number
+    y: number
+
+    constructor(x?: number, y?: number) {
+        this.x = x || 0
+        this.y = y || 0
+    }
+
+}
+
+enum DisplayType {
+    //used in stage resizing
+    wideScreen,
+    fill
+}
+
+//world object types
+class Actor extends WorldObject {
+    //moving character
+    health: number
+    maxHealth: number
+    script: string
+
+    constructor(position: Vector2, imgSrc: HTMLImageElement, script: string = 'console.log("Hello World!")') {
+        super(position, imgSrc)
+        this.script = script
+        this.health = 100
+        this.maxHealth = 100
+
+        this.runScript()
+    }
+
+    runScript() {
+        const script = new Function(this.script)
+        const sandboxedObject = {
+            console,
+            actor: this
+        }
+        script.call(sandboxedObject)
+    }
+}
+
 let canvas: HTMLCanvasElement = document.getElementById('main') as HTMLCanvasElement
 let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16)
 
@@ -104,6 +143,6 @@ function loop() {
 let image = new Image()
 image.src = "./assets/player.svg"
 
-main.newObject(new Vector2(100, 100), image)
+new Actor(new Vector2(100, 100), image, 'alert("hello")')
 
 loop()

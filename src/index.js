@@ -1,26 +1,19 @@
 "use strict";
 //try to use less AI, document more, and use typescript
-console.log('hello');
-//used in stage resizing
-var DisplayType;
-(function (DisplayType) {
-    DisplayType[DisplayType["wideScreen"] = 0] = "wideScreen";
-    DisplayType[DisplayType["fill"] = 1] = "fill";
-})(DisplayType || (DisplayType = {}));
-//used for position and size
-class Vector2 {
-    x;
-    y;
-    constructor(x, y) {
-        this.x = x || 0;
-        this.y = y || 0;
+class Instance {
+    name;
+    id;
+    constructor(name = "Instance", id = Math.floor(Math.random() * 1000)) {
+        this.name = name;
+        this.id = id;
     }
 }
 //tiles, actors, etc...
-class WorldObject {
+class WorldObject extends Instance {
     position;
     imgSrc;
     constructor(position, imgSrc) {
+        super();
         this.position = position;
         this.imgSrc = imgSrc;
     }
@@ -76,6 +69,44 @@ class Stage {
         this.world.push(new WorldObject(position, image));
     }
 }
+//data types
+class Vector2 {
+    //used for positioning and sizing
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x || 0;
+        this.y = y || 0;
+    }
+}
+var DisplayType;
+(function (DisplayType) {
+    //used in stage resizing
+    DisplayType[DisplayType["wideScreen"] = 0] = "wideScreen";
+    DisplayType[DisplayType["fill"] = 1] = "fill";
+})(DisplayType || (DisplayType = {}));
+//world object types
+class Actor extends WorldObject {
+    //moving character
+    health;
+    maxHealth;
+    script;
+    constructor(position, imgSrc, script = 'console.log("Hello World!")') {
+        super(position, imgSrc);
+        this.script = script;
+        this.health = 100;
+        this.maxHealth = 100;
+        this.runScript();
+    }
+    runScript() {
+        const script = new Function(this.script);
+        const sandboxedObject = {
+            console,
+            actor: this
+        };
+        script.call(sandboxedObject);
+    }
+}
 let canvas = document.getElementById('main');
 let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16);
 //main loop
@@ -86,6 +117,6 @@ function loop() {
 }
 let image = new Image();
 image.src = "./assets/player.svg";
-main.newObject(new Vector2(100, 100), image);
+new Actor(new Vector2(100, 100), image, 'alert("hello")');
 loop();
 //# sourceMappingURL=index.js.map
