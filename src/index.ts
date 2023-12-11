@@ -1,7 +1,7 @@
 //try to use less AI, document more, and use typescript
 
 //used in stage resizing
-enum displayType {
+enum DisplayType {
     wideScreen,
     fill
 }
@@ -47,14 +47,14 @@ class WorldObject {
 //stages can change... will add later
 class Stage {
     world: WorldObject[]
-    displayType: displayType
+    displayType: DisplayType
     canvas: HTMLCanvasElement
     context: CanvasRenderingContext2D
     aspect_ratio: number
 
-    constructor(canvas: HTMLCanvasElement, displayType: displayType, aspect_ratio) {
+    constructor(canvas: HTMLCanvasElement, DisplayType: DisplayType, aspect_ratio: number) {
         this.world = []
-        this.displayType = displayType
+        this.displayType = DisplayType
         this.canvas = canvas || document.createElement('canvas')
         this.context = canvas.getContext('2d') as CanvasRenderingContext2D
         this.aspect_ratio = aspect_ratio || 9 / 16
@@ -62,7 +62,7 @@ class Stage {
 
     setCanvasDimensions() {
         this.canvas.width = window.innerWidth;
-        this.canvas.height = this.displayType === displayType.fill
+        this.canvas.height = this.displayType === DisplayType.fill
             ? window.innerHeight
             : window.innerWidth * this.aspect_ratio;
     }
@@ -91,7 +91,7 @@ class Stage {
 }
 
 let canvas: HTMLCanvasElement = document.getElementById('main') as HTMLCanvasElement
-let main = new Stage(canvas, displayType.wideScreen, 9 / 16)
+let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16)
 
 //main loop
 function loop() {
@@ -104,6 +104,6 @@ function loop() {
 let image = new Image()
 image.src = "./assets/player.svg"
 
-main.newObject(new Vector2(0, 0), image)
+main.newObject(new Vector2(100, 100), image)
 
 loop()

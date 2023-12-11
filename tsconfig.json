@@ -1,24 +1,15 @@
 {
     "compilerOptions": {
-        "target": "ESNext", /* Specify ECMAScript target version */
-        "module": "CommonJS", /* Specify module code generation */
-        "strict": true, /* Enable all strict type-checking options */
-        "esModuleInterop": true, /* Enable interoperability between CommonJS and ES module systems */
-        "skipLibCheck": true, /* Skip type checking of declaration files */
-        "forceConsistentCasingInFileNames": true, /* Ensure that casing is consistent in file names */
-        "strictNullChecks": true, /* Enable strict null checks */
-        "strictFunctionTypes": true, /* Enable strict checking of function types */
-        "noImplicitAny": true, /* Raise error on expressions and declarations with an implied 'any' type */
-        "moduleResolution": "node", /* Specify module resolution strategy */
-        "baseUrl": "./", /* Base directory to resolve non-relative module names */
-        "declaration": true, /* Generate .d.ts files */
-        "sourceMap": true, /* Generate source maps */
-        "downlevelIteration": true /* Emit ECMAScript standard-compliant iteration for 'for-of' loop */
+        "target": "ESNext",
+        "module": "CommonJS",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "moduleResolution": "node",
+        "baseUrl": "./",
+        "declaration": true,
+        "sourceMap": true,
+        "downlevelIteration": true
     },
-    "include": [
-        "src/**/*.ts"
-    ], /* Specify the files to be included in the compilation */
-    "exclude": [
-        "node_modules"
-    ] /* Specify files to be excluded from the compilation */
 }
