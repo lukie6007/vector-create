@@ -1,4 +1,32 @@
 //try to use less AI, document more, and use typescript
+class Runtime {
+    private updateCallbacks: (() => void)[] = [];
+
+    constructor() { }
+
+    loop = () => {
+        this.update()
+        requestAnimationFrame(() => this.loop()) // Use an arrow function to preserve 'this'
+
+    };
+
+    onUpdate(callback: () => void) {
+        // Attach the callback function to the update event
+        this.updateCallbacks.push(callback)
+    }
+
+    update() {
+        // Call all registered update callbacks
+        for (const callback of this.updateCallbacks) {
+            callback()
+        }
+
+        main.render()
+        main.stepPhysics()
+    }
+}
+
+const runtime = new Runtime()
 
 class Instance {
     name: string;
@@ -14,27 +42,43 @@ class Instance {
 //tiles, actors, etc...
 class WorldObject extends Instance {
     position: Vector2
+    orientation: number
     imgSrc: HTMLImageElement
+    stage: Stage
 
-    constructor(position: Vector2, imgSrc: HTMLImageElement) {
-        super()
+    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string) {
+        super(name)
         this.position = position;
+        this.orientation = orientation
         this.imgSrc = imgSrc
+        this.stage = stage
     }
 
-    render(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+    render() {
+        let canvas = this.stage.canvas;
+        let context = canvas.getContext('2d') as CanvasRenderingContext2D
         const canvasPercent = {
             width: canvas.width / 1280,
             height: canvas.height / 720
-        }
+        };
         const renderObject = {
             x: this.position.x * canvasPercent.width,
             y: this.position.y * canvasPercent.height,
             width: this.imgSrc.width * canvasPercent.width,
             height: this.imgSrc.height * canvasPercent.height
-        }
+        };
+        context.save();
 
-        context.drawImage(this.imgSrc, renderObject.x, renderObject.y, renderObject.width, renderObject.height)
+        // Adjust the translation to the center of the rotated image
+        context.translate(renderObject.x, renderObject.y);
+        context.rotate((this.orientation * Math.PI) / 180);
+        context.drawImage(this.imgSrc, -renderObject.width / 2, -renderObject.height / 2, renderObject.width, renderObject.height);
+
+        context.restore();
+    }
+
+    update() {
+        this.render()
     }
 }
 
@@ -67,10 +111,10 @@ class Stage {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.world.forEach(object => {
-            if (typeof object.render === 'function') {
-                object.render(this.context, this.canvas);
+            if (typeof object.update === 'function') {
+                object.update();
             } else {
-                console.warn('Object does not have a render method:', object);
+                console.warn('Object does not have a update method:', object);
             }
         });
     }
@@ -78,9 +122,46 @@ class Stage {
     stepPhysics() {
 
     }
+}
 
-    newObject(position: Vector2, image: HTMLImageElement) {
-        this.world.push(new WorldObject(position, image))
+//services
+class InputService {
+    keyState: { [key: string]: boolean };
+    mouse: { x: number; y: number };
+
+    constructor() {
+        this.keyState = {};
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
+        this.mouse = { x: 0, y: 0 };
+
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+        document.addEventListener('mousemove', this.getMouse.bind(this)); // Bind getMouse to the current instance
+    }
+
+    handleKeyDown(event: KeyboardEvent) {
+        this.keyState[event.key] = true;
+    }
+
+    handleKeyUp(event: KeyboardEvent) {
+        this.keyState[event.key] = false;
+    }
+
+    isKeyDown(key: string): boolean {
+        return this.keyState[key] || false;
+    }
+
+    getMouse(event: MouseEvent) {
+        this.mouse.x = event.clientX;
+        this.mouse.y = -event.clientY;
+    }
+
+    // Add a method to remove event listeners when no longer needed
+    removeEventListeners() {
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
+        document.removeEventListener('mousemove', this.getMouse.bind(this)); // Unbind getMouse
     }
 }
 
@@ -110,39 +191,71 @@ class Actor extends WorldObject {
     maxHealth: number
     script: string
 
-    constructor(position: Vector2, imgSrc: HTMLImageElement, script: string = 'console.log("Hello World!")') {
-        super(position, imgSrc)
+    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string, script: string = 'console.log("Hello World!")') {
+        super(position, orientation, imgSrc, stage, name)
         this.script = script
         this.health = 100
         this.maxHealth = 100
-
         this.runScript()
     }
 
     runScript() {
-        const script = new Function(this.script)
-        const sandboxedObject = {
+
+        const libraries = {
             console,
-            actor: this
+            actor: this,
+            inputService: new InputService(),
+            onUpdate: runtime.onUpdate.bind(runtime)
         }
-        script.call(sandboxedObject)
+
+        const sandbox = { private: libraries }
+
+        const script = new Function(`with(this.private) { ${this.script} }`) as () => void;
+        script.call(sandbox)
+
+    }
+
+    update() {
+        this.render()
     }
 }
+
+
 
 let canvas: HTMLCanvasElement = document.getElementById('main') as HTMLCanvasElement
 let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16)
 
-//main loop
-function loop() {
-    main.render()
-    main.stepPhysics()
-
-    requestAnimationFrame(loop)
-}
-
 let image = new Image()
 image.src = "./assets/player.svg"
 
-new Actor(new Vector2(100, 100), image, 'alert("hello")')
+let script = `
+let xv = 0
+let yv = 0
+onUpdate(() => {
+    console.log('test')
 
-loop()
+    yv += -1
+    yv *= 0.95
+    xv *= 0.90
+
+    if (actor.position.y > 500) {
+        actor.position.y = 500
+        yv = 0
+        
+    }
+if (inputService.isKeyDown('ArrowUp')) {
+            yv = 15
+
+        }
+    actor.position.x += xv
+    actor.position.y += -yv
+    actor.orientation += yv
+})
+`
+
+let newactor = new Actor(new Vector2(Math.random() * canvas.width, 100), Math.random() * 360, image, main, "player", script)
+main.world.push(newactor)
+
+
+
+runtime.loop()

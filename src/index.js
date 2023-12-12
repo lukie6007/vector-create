@@ -1,5 +1,26 @@
 "use strict";
 //try to use less AI, document more, and use typescript
+class Runtime {
+    updateCallbacks = [];
+    constructor() { }
+    loop = () => {
+        this.update();
+        requestAnimationFrame(() => this.loop()); // Use an arrow function to preserve 'this'
+    };
+    onUpdate(callback) {
+        // Attach the callback function to the update event
+        this.updateCallbacks.push(callback);
+    }
+    update() {
+        // Call all registered update callbacks
+        for (const callback of this.updateCallbacks) {
+            callback();
+        }
+        main.render();
+        main.stepPhysics();
+    }
+}
+const runtime = new Runtime();
 class Instance {
     name;
     id;
@@ -11,13 +32,19 @@ class Instance {
 //tiles, actors, etc...
 class WorldObject extends Instance {
     position;
+    orientation;
     imgSrc;
-    constructor(position, imgSrc) {
-        super();
+    stage;
+    constructor(position, orientation, imgSrc, stage, name) {
+        super(name);
         this.position = position;
+        this.orientation = orientation;
         this.imgSrc = imgSrc;
+        this.stage = stage;
     }
-    render(context, canvas) {
+    render() {
+        let canvas = this.stage.canvas;
+        let context = canvas.getContext('2d');
         const canvasPercent = {
             width: canvas.width / 1280,
             height: canvas.height / 720
@@ -28,7 +55,15 @@ class WorldObject extends Instance {
             width: this.imgSrc.width * canvasPercent.width,
             height: this.imgSrc.height * canvasPercent.height
         };
-        context.drawImage(this.imgSrc, renderObject.x, renderObject.y, renderObject.width, renderObject.height);
+        context.save();
+        // Adjust the translation to the center of the rotated image
+        context.translate(renderObject.x, renderObject.y);
+        context.rotate((this.orientation * Math.PI) / 180);
+        context.drawImage(this.imgSrc, -renderObject.width / 2, -renderObject.height / 2, renderObject.width, renderObject.height);
+        context.restore();
+    }
+    update() {
+        this.render();
     }
 }
 //stages can change... will add later
@@ -55,18 +90,48 @@ class Stage {
         this.setCanvasDimensions();
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.world.forEach(object => {
-            if (typeof object.render === 'function') {
-                object.render(this.context, this.canvas);
+            if (typeof object.update === 'function') {
+                object.update();
             }
             else {
-                console.warn('Object does not have a render method:', object);
+                console.warn('Object does not have a update method:', object);
             }
         });
     }
     stepPhysics() {
     }
-    newObject(position, image) {
-        this.world.push(new WorldObject(position, image));
+}
+//services
+class InputService {
+    keyState;
+    mouse;
+    constructor() {
+        this.keyState = {};
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
+        this.mouse = { x: 0, y: 0 };
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+        document.addEventListener('mousemove', this.getMouse.bind(this)); // Bind getMouse to the current instance
+    }
+    handleKeyDown(event) {
+        this.keyState[event.key] = true;
+    }
+    handleKeyUp(event) {
+        this.keyState[event.key] = false;
+    }
+    isKeyDown(key) {
+        return this.keyState[key] || false;
+    }
+    getMouse(event) {
+        this.mouse.x = event.clientX;
+        this.mouse.y = -event.clientY;
+    }
+    // Add a method to remove event listeners when no longer needed
+    removeEventListeners() {
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
+        document.removeEventListener('mousemove', this.getMouse.bind(this)); // Unbind getMouse
     }
 }
 //data types
@@ -91,32 +156,57 @@ class Actor extends WorldObject {
     health;
     maxHealth;
     script;
-    constructor(position, imgSrc, script = 'console.log("Hello World!")') {
-        super(position, imgSrc);
+    constructor(position, orientation, imgSrc, stage, name, script = 'console.log("Hello World!")') {
+        super(position, orientation, imgSrc, stage, name);
         this.script = script;
         this.health = 100;
         this.maxHealth = 100;
         this.runScript();
     }
     runScript() {
-        const script = new Function(this.script);
-        const sandboxedObject = {
+        const libraries = {
             console,
-            actor: this
+            actor: this,
+            inputService: new InputService(),
+            onUpdate: runtime.onUpdate.bind(runtime)
         };
-        script.call(sandboxedObject);
+        const sandbox = { private: libraries };
+        const script = new Function(`with(this.private) { ${this.script} }`);
+        script.call(sandbox);
+    }
+    update() {
+        this.render();
     }
 }
 let canvas = document.getElementById('main');
 let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16);
-//main loop
-function loop() {
-    main.render();
-    main.stepPhysics();
-    requestAnimationFrame(loop);
-}
 let image = new Image();
 image.src = "./assets/player.svg";
-new Actor(new Vector2(100, 100), image, 'alert("hello")');
-loop();
+let script = `
+let xv = 0
+let yv = 0
+onUpdate(() => {
+    console.log('test')
+
+    yv += -1
+    yv *= 0.95
+    xv *= 0.90
+
+    if (actor.position.y > 500) {
+        actor.position.y = 500
+        yv = 0
+        
+    }
+if (inputService.isKeyDown('ArrowUp')) {
+            yv = 15
+            while (inputService.isKeyDown('ArrowUp')) {}
+        }
+    actor.position.x += xv
+    actor.position.y += -yv
+    actor.orientation += yv
+})
+`;
+let newactor = new Actor(new Vector2(Math.random() * canvas.width, 100), Math.random() * 360, image, main, "player", script);
+main.world.push(newactor);
+runtime.loop();
 //# sourceMappingURL=index.js.map

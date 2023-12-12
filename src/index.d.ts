@@ -1,3 +1,11 @@
+declare class Runtime {
+    private updateCallbacks;
+    constructor();
+    loop: () => void;
+    onUpdate(callback: () => void): void;
+    update(): void;
+}
+declare const runtime: Runtime;
 declare class Instance {
     name: string;
     id: number;
@@ -5,9 +13,12 @@ declare class Instance {
 }
 declare class WorldObject extends Instance {
     position: Vector2;
+    orientation: number;
     imgSrc: HTMLImageElement;
-    constructor(position: Vector2, imgSrc: HTMLImageElement);
-    render(context: CanvasRenderingContext2D, canvas: HTMLCanvasElement): void;
+    stage: Stage;
+    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string);
+    render(): void;
+    update(): void;
 }
 declare class Stage {
     world: WorldObject[];
@@ -19,7 +30,21 @@ declare class Stage {
     setCanvasDimensions(): void;
     render(): void;
     stepPhysics(): void;
-    newObject(position: Vector2, image: HTMLImageElement): void;
+}
+declare class InputService {
+    keyState: {
+        [key: string]: boolean;
+    };
+    mouse: {
+        x: number;
+        y: number;
+    };
+    constructor();
+    handleKeyDown(event: KeyboardEvent): void;
+    handleKeyUp(event: KeyboardEvent): void;
+    isKeyDown(key: string): boolean;
+    getMouse(event: MouseEvent): void;
+    removeEventListeners(): void;
 }
 declare class Vector2 {
     x: number;
@@ -34,10 +59,12 @@ declare class Actor extends WorldObject {
     health: number;
     maxHealth: number;
     script: string;
-    constructor(position: Vector2, imgSrc: HTMLImageElement, script?: string);
+    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string, script?: string);
     runScript(): void;
+    update(): void;
 }
 declare let canvas: HTMLCanvasElement;
 declare let main: Stage;
-declare function loop(): void;
 declare let image: HTMLImageElement;
+declare let script: string;
+declare let newactor: Actor;
