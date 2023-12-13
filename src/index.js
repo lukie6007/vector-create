@@ -45,10 +45,16 @@ class WorldObject extends Instance {
     render() {
         let canvas = this.stage.canvas;
         let context = canvas.getContext('2d');
-        const canvasPercent = {
-            width: canvas.width / 1280,
-            height: canvas.height / 720
+        let canvasPercent = {
+            width: 1,
+            height: 1
         };
+        if (this.stage.displayType === DisplayType.wideScreen || this.stage.displayType === DisplayType.stretch) {
+            canvasPercent = {
+                width: canvas.width / 1280,
+                height: canvas.height / 720
+            };
+        }
         const renderObject = {
             x: this.position.x * canvasPercent.width,
             y: this.position.y * canvasPercent.height,
@@ -81,10 +87,20 @@ class Stage {
         this.aspect_ratio = aspect_ratio || 9 / 16;
     }
     setCanvasDimensions() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = this.displayType === DisplayType.fill
-            ? window.innerHeight
-            : window.innerWidth * this.aspect_ratio;
+        if (this.displayType === DisplayType.stretch) {
+            this.canvas.style.width = window.innerWidth + 'px';
+            this.canvas.style.height = window.innerHeight + 'px';
+        }
+        else {
+            this.canvas.width = window.innerWidth;
+            if (this.displayType === DisplayType.fill) {
+                this.canvas.height = window.innerHeight;
+            }
+            else {
+                // Default to DisplayType.widescreen
+                this.canvas.height = window.innerWidth * this.aspect_ratio;
+            }
+        }
     }
     render() {
         this.setCanvasDimensions();
@@ -149,6 +165,7 @@ var DisplayType;
     //used in stage resizing
     DisplayType[DisplayType["wideScreen"] = 0] = "wideScreen";
     DisplayType[DisplayType["fill"] = 1] = "fill";
+    DisplayType[DisplayType["stretch"] = 2] = "stretch";
 })(DisplayType || (DisplayType = {}));
 //world object types
 class Actor extends WorldObject {
@@ -174,12 +191,9 @@ class Actor extends WorldObject {
         const script = new Function(`with(this.private) { ${this.script} }`);
         script.call(sandbox);
     }
-    update() {
-        this.render();
-    }
 }
 let canvas = document.getElementById('main');
-let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16);
+let main = new Stage(canvas, DisplayType.fill, 9 / 16);
 let image = new Image();
 image.src = "./assets/player.svg";
 let script = `
@@ -187,23 +201,29 @@ let xv = 0
 let yv = 0
 onUpdate(() => {
     console.log('test')
+    if (inputService.isKeyDown('ArrowRight')) {
+        xv += 1
+    }
+
+    if (inputService.isKeyDown('ArrowLeft')) {
+        xv += -1
+    }
 
     yv += -1
     yv *= 0.95
     xv *= 0.90
 
-    if (actor.position.y > 500) {
-        actor.position.y = 500
+    if (actor.position.y > 300) {
+        actor.position.y = 300
         yv = 0
-        
-    }
-if (inputService.isKeyDown('ArrowUp')) {
+        if (inputService.isKeyDown('ArrowUp')) {
             yv = 15
-            while (inputService.isKeyDown('ArrowUp')) {}
         }
+    }
+
     actor.position.x += xv
     actor.position.y += -yv
-    actor.orientation += yv
+    actor.orientation += xv
 })
 `;
 let newactor = new Actor(new Vector2(Math.random() * canvas.width, 100), Math.random() * 360, image, main, "player", script);
