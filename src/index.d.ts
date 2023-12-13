@@ -53,7 +53,8 @@ declare class Vector2 {
 }
 declare enum DisplayType {
     wideScreen = 0,
-    fill = 1
+    fill = 1,
+    stretch = 2
 }
 declare class Actor extends WorldObject {
     health: number;
@@ -61,7 +62,6 @@ declare class Actor extends WorldObject {
     script: string;
     constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string, script?: string);
     runScript(): void;
-    update(): void;
 }
 declare let canvas: HTMLCanvasElement;
 declare let main: Stage;
