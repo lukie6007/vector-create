@@ -241,7 +241,7 @@ class Actor extends WorldObject {
 
 
 let canvas: HTMLCanvasElement = document.getElementById('main') as HTMLCanvasElement
-let main = new Stage(canvas, DisplayType.fill, 9 / 16)
+let main = new Stage(canvas, DisplayType.wideScreen, 9 / 16)
 
 let image = new Image()
 image.src = "./assets/player.svg"
@@ -263,8 +263,8 @@ onUpdate(() => {
     yv *= 0.95
     xv *= 0.90
 
-    if (actor.position.y > 300) {
-        actor.position.y = 300
+    if (actor.position.y > 720) {
+        actor.position.y = 720
         yv = 0
         if (inputService.isKeyDown('ArrowUp')) {
             yv = 15
