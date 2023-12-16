@@ -9,27 +9,34 @@ declare const runtime: Runtime;
 declare class Instance {
     name: string;
     id: number;
-    constructor(name?: string, id?: number);
+    children: WorldObject[];
+    constructor(options: any);
 }
 declare class WorldObject extends Instance {
     position: Vector2;
     orientation: number;
-    imgSrc: HTMLImageElement;
+    img: HTMLImageElement;
     stage: Stage;
-    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string);
+    colliding: WorldObject[];
+    constructor(options: any);
     render(): void;
     update(): void;
+    stepCollision(rect: collisionRectangle, stage: Stage, id: number): collisionRectangle;
 }
-declare class Stage {
-    world: WorldObject[];
+declare class Camera extends Instance {
+    position: Vector2;
+    constructor(options: any);
+}
+declare class Stage extends Instance {
     displayType: DisplayType;
     canvas: HTMLCanvasElement;
     context: CanvasRenderingContext2D;
     aspect_ratio: number;
-    constructor(canvas: HTMLCanvasElement, DisplayType: DisplayType, aspect_ratio: number);
+    tile_size: number;
+    camera: Camera;
+    constructor(options: any);
     setCanvasDimensions(): void;
     render(): void;
-    stepPhysics(): void;
 }
 declare class InputService {
     keyState: {
@@ -56,15 +63,26 @@ declare enum DisplayType {
     fill = 1,
     stretch = 2
 }
+declare class collisionRectangle {
+    position: Vector2;
+    size: Vector2;
+    constructor(position: Vector2, size: Vector2);
+}
 declare class Actor extends WorldObject {
     health: number;
     maxHealth: number;
     script: string;
-    constructor(position: Vector2, orientation: number, imgSrc: HTMLImageElement, stage: Stage, name: string, script?: string);
+    constructor(options: any);
     runScript(): void;
+    update(): void;
+}
+declare class Tile extends WorldObject {
+    tile_size: number;
+    tilePosition: Vector2;
+    constructor(options: any);
+    update(): void;
 }
 declare let canvas: HTMLCanvasElement;
 declare let main: Stage;
 declare let image: HTMLImageElement;
 declare let script: string;
-declare let newactor: Actor;
